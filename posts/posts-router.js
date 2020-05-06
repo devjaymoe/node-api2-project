@@ -4,8 +4,12 @@ const Posts = require('../data/db.js');
 router.get('/', (req, res) => {
     Posts.find(req.query)
         .then(posts => {
-            console.log(posts)
-            res.status(200).json(posts)
+            const [check] = posts
+            if (check){
+                res.status(200).json(posts)
+            } else {
+                res.status(200).json({ message: 'no posts'})
+            }
         })
         .catch(err => {
             console.log(err)
@@ -18,17 +22,17 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
     Posts.findById(req.params.id)
         .then(posts => {
-            console.log(posts)
-            if (posts) {
+            const [check] = posts
+            if (check) {
                 res.status(200).json(posts)
             } else {
-                res.status(200).json({message: 'Post not found'})
+                res.status(404).json({message: 'The post with the specified ID does not exist.'})
             }
         })
         .catch(err => {
             console.log(err)
             res.status(500).json({
-                message: 'error retrieving the posts'
+                message: 'The post information could not be retrieved.'
             });
         });
 });
@@ -36,16 +40,17 @@ router.get('/:id', (req, res) => {
 router.get('/:id/comments', (req, res) => {
     Posts.findPostComments(req.params.id)
         .then(posts => {
-            if (posts) {
+            const [check] = posts
+            if (check) {
                 res.status(200).json(posts)
             } else {
-                res.status(200).json({message: 'Post not found'})
+                res.status(400).json({message: 'The post with the specified ID does not exist.'})
             }
         })
         .catch(err => {
             console.log(err)
             res.status(500).json({
-                message: 'error retrieving the posts'
+                message: 'The comments information could not be retrieved.'
             });
         });
 });
@@ -53,7 +58,8 @@ router.get('/:id/comments', (req, res) => {
 router.delete('/:id', (req, res) => {
     Posts.findById(req.params.id)
         .then(post => {
-            if (post) {
+            const [check] = post
+            if (check) {
 
                 Posts.remove(req.params.id)
                 .then(response => {
@@ -66,14 +72,14 @@ router.delete('/:id', (req, res) => {
                     });
                 });
 
-            } else if (!post) {
-                res.status(200).json({message: 'Post not found'})
+            } else {
+                res.status(404).json({message: 'The post with the specified ID does not exist.'})
             }
         })
         .catch(err => {
             console.log(err)
             res.status(500).json({
-                message: 'error retrieving the posts'
+                message: 'The post could not be removed'
             });
         });
 });
@@ -176,23 +182,36 @@ router.post('/:id/comments', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-    Posts.update(req.params.id, req.body)
+    const update = req.body
+
+    Posts.update(req.params.id, update)
         .then( response => {
-            console.log(response)
-            Posts.findById(req.params.id)
-                .then(post => {
-                    res.status(200).json(post)
-                })
-                .catch(error => {
-                    console.log(error)
-                    res.status(200).json({
-                        message: 'there was an error finding the post id'
-                    });
-                });
+
+            if (response) {
+
+                if (update.title && update.contents){
+
+                    Posts.findById(req.params.id)
+                        .then(post => {
+                            res.status(200).json(post)
+                        })
+                        .catch(error => {
+                            console.log(error)
+                            res.status(200).json({
+                                message: 'there was an error finding the post id'
+                            });
+                        });
+                } else {
+                    res.status(400).json({ message: "Please provide title and contents for the post."})
+                }
+
+            } else {
+                res.status(404).json({message: "The post with the specified ID does not exist." })
+            }
         })
         .catch( error => {
             console.log(error)
-            res.status(404).json({ message: 'post not found'});
+            res.status(500).json({ message: 'The post information could not be modified.'});
         });
 });
 
